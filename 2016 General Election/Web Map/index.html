@@ -11,27 +11,21 @@
         <link rel="stylesheet" href="css/MarkerCluster.css" />
         <link rel="stylesheet" href="css/MarkerCluster.Default.css" />
         <style>
-        html, body, #map {
-            width: 100%;
-            height: 100%;
-            padding: 0;
-            margin: 0;
+        html, body {
+					width: 100%;
+					height: 100%;
+					padding: 0;
+					margin: 0;
         }
-				h1 {margin: 10 0 0 0px;}
-				p {
-					margin: 0 0 0 0px;
-					font-size: 14px;
+				#map {
+					width: 100%;
+					height: 800px;
 				}
-					
+
         </style>
-        <title>2016 U.S. Election Results and Population Density by County</title>
+        <title></title>
     </head>
     <body>
-		
-		<center>
-			<h1>2016 U.S. Election Results and Population Density by County</h1>
-			<p>Please be patient as county-level geoJSON data file is loaded (~30 MB).</p> 
-		</center>
         <div id="map">
         </div>
         <script src="js/qgis2web_expressions.js"></script>
@@ -43,8 +37,24 @@
         <script src="js/leaflet-tilelayer-wmts.js"></script>
         <script src="js/Autolinker.min.js"></script>
         <script src="js/leaflet.markercluster.js"></script>
-        <script src="data/cb2015uscounty500k0.js"></script>
+        <script src="data/gz2010us0500020m0.js"></script>
         <script>
+        var highlightLayer;
+        function highlightFeature(e) {
+            highlightLayer = e.target;
+
+            if (e.target.feature.geometry.type === 'LineString') {
+              highlightLayer.setStyle({
+                color: '#ffff00',
+              });
+            } else {
+              highlightLayer.setStyle({
+                fillColor: '#fff000',
+                fillOpacity: 0.5
+              });
+            }
+            highlightLayer.openPopup();
+        }
         L.ImageOverlay.include({
             getBounds: function () {
                 return this._bounds;
@@ -52,12 +62,16 @@
         });
         var map = L.map('map', {
             zoomControl:true, maxZoom:28, minZoom:1
-        }).fitBounds([[22.6112459811,-118.913011886],[48.1253636524,-72.7568640036]]);
+        }).setView(new L.LatLng(37.0902, -95.7129), 5);
         var hash = new L.Hash(map);
         map.attributionControl.addAttribution('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a>');
         var bounds_group = new L.featureGroup([]);
+        var basemap0 = L.tileLayer('http://{s}.www.toolserver.org/tiles/bw-mapnik/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>',
+            maxZoom: 28
+        });
+        basemap0.addTo(map);
         function setBounds() {
-            map.setMaxBounds(map.getBounds());
         }
         function geoJson2heat(geojson, weight) {
           return geojson.features.map(function(feature) {
@@ -68,73 +82,91 @@
             ];
           });
         }
-        function pop_cb2015uscounty500k0(feature, layer) {
+        function pop_gz2010us0500020m0(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    layer.setStyle(style_gz2010us0500020m0(feature));
+
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
             var popupContent = '<table>\
                     <tr>\
                         <td><b>County Name:</b> ' + (feature.properties['NAME'] !== null ? Autolinker.link(String(feature.properties['NAME'])) : '') + '</td>\
                     </tr>\
                     <tr>\
-                        <td><b>Population Density:</b> ' + (feature.properties['POPDEN'] !== null ? Autolinker.link(String(feature.properties['POPDEN'])) : '') + ' people per square mile</td>\
+                        <td><b>Population Density:</b> ' + (feature.properties['popdens_POPDEN'] !== null ? Autolinker.link(String(feature.properties['popdens_POPDEN'])) : '') + ' people/mi<sup>2</sup></td>\
+                    </tr>\
+                    <tr>\
+                        <td><b>Winner:</b> ' + (feature.properties['popdens_WINNER'] !== null ? Autolinker.link(String(feature.properties['popdens_WINNER'])) : '') + '</td>\
                     </tr>\
                 </table>';
             layer.bindPopup(popupContent);
         }
 
-        function style_cb2015uscounty500k0(feature) {
-            switch(feature.properties['ge_results_county_edit1_CA_NAME']) {
+        function style_gz2010us0500020m0(feature) {
+            switch(feature.properties['popdens_WINNER']) {
                 default:
                     return {
-                pane: 'pane_cb2015uscounty500k0',
+                pane: 'pane_gz2010us0500020m0',
                 opacity: 1,
-                color: 'rgba(3,3,3,0.980392)',
+                color: 'rgba(0,0,0,1.0)',
                 dashArray: '',
                 lineCap: 'butt',
                 lineJoin: 'miter',
-                weight: 1, 
+                weight: 1.0, 
                 fillOpacity: 1,
-                fillColor: 'rgba(1,255,22,0.980392)',
+                fillColor: 'rgba(206,206,206,1.0)',
             }
                     break;
                 case 'D. Trump':
                     return {
-                pane: 'pane_cb2015uscounty500k0',
+                pane: 'pane_gz2010us0500020m0',
                 opacity: 1,
-                color: 'rgba(3,3,3,0.980392)',
+                color: 'rgba(0,0,0,1.0)',
                 dashArray: '',
                 lineCap: 'butt',
                 lineJoin: 'miter',
-                weight: 1, 
+                weight: 1.0, 
                 fillOpacity: 1,
-                fillColor: 'rgba(222,45,38,0.980392)',
+                fillColor: 'rgba(202,0,32,1.0)',
             }
                     break;
                 case 'H. Clinton':
                     return {
-                pane: 'pane_cb2015uscounty500k0',
+                pane: 'pane_gz2010us0500020m0',
                 opacity: 1,
-                color: 'rgba(3,3,3,0.980392)',
+                color: 'rgba(0,0,0,1.0)',
                 dashArray: '',
                 lineCap: 'butt',
                 lineJoin: 'miter',
-                weight: 1, 
+                weight: 1.0, 
                 fillOpacity: 1,
-                fillColor: 'rgba(49,130,189,0.980392)',
+                fillColor: 'rgba(43,131,186,1.0)',
             }
                     break;
             }
         }
-        map.createPane('pane_cb2015uscounty500k0');
-        map.getPane('pane_cb2015uscounty500k0').style.zIndex = 400;
-        map.getPane('pane_cb2015uscounty500k0').style['mix-blend-mode'] = 'normal';
-    var layer_cb2015uscounty500k0 = new L.geoJson(json_cb2015uscounty500k0, {
+        map.createPane('pane_gz2010us0500020m0');
+        map.getPane('pane_gz2010us0500020m0').style.zIndex = 400;
+        map.getPane('pane_gz2010us0500020m0').style['mix-blend-mode'] = 'normal';
+    var layer_gz2010us0500020m0 = new L.geoJson(json_gz2010us0500020m0, {
         attribution: '<a href=""></a>',
-        pane: 'pane_cb2015uscounty500k0',
-        onEachFeature: pop_cb2015uscounty500k0,
-        style: style_cb2015uscounty500k0
+        pane: 'pane_gz2010us0500020m0',
+        onEachFeature: pop_gz2010us0500020m0,
+        style: style_gz2010us0500020m0
     });
-        bounds_group.addLayer(layer_cb2015uscounty500k0);
-        map.addLayer(layer_cb2015uscounty500k0);
+        bounds_group.addLayer(layer_gz2010us0500020m0);
+        map.addLayer(layer_gz2010us0500020m0);
         setBounds();
+				
         </script>
     </body>
 </html>
